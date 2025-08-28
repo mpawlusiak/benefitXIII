@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Genially Flip Card (SVG Front/Back) — 402×201</title>
+  <style>
+    /* ---------- Reset / Base ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: transparent; /* so it sits cleanly over Genially */
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    
+    .shell {
+      transition: transform var(--duration) var(--easing), box-shadow var(--duration) var(--easing);
+      will-change: transform;
+      border-radius: var(--radius);
+    }
+    .shell:hover {
+      transform: translateY(-6px);
+    }
+    .shell:has(.flip-card:focus-visible) {
+      /* keep focus halo visible, optional */
+      transform: translateY(-2px);
+    }
+
+    /* ---------- Config ----------
+      The card is designed for 402×201 (Intro Card) but will scale responsively.
+      We use aspect-ratio so the card always looks correct in an iframe.
+    -------------------------------- */
+    :root {
+      --card-w: 402px;
+      --card-h: 201px;
+      --shadow: 0 8px 16px rgba(0,0,0,.25);
+      --radius: 0px; /* flat corners per your preference */
+      --duration: 700ms;
+      --easing: cubic-bezier(.22,.61,.36,1);
+    }
+
+    .wrap {
+      width: min(100%, var(--card-w));
+      aspect-ratio: 402 / 201;
+      perspective: 1200px;
+    }
+
+    .flip-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform var(--duration) var(--easing);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      outline: none; /* we'll manage focus styles */
+    }
+    .flip-card:focus-visible {
+      box-shadow:
+        0 0 0 2px black,
+        0 0 0 6px rgba(0, 153, 255, .6),
+        var(--shadow);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: var(--radius);
+      overflow: hidden; /* ensures SVG fits perfectly */
+      background: transparent;
+    }
+
+    /* The actual vector images */
+    .face > img,
+    .face > object {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* keeps exact art proportions inside 402×201 */
+      pointer-events: none; /* so clicks hit the card for flipping */
+      user-select: none;
+    }
+
+    .back {
+      transform: rotateY(180deg);
+    }
+
+    .flipped {
+      transform: rotateY(180deg);
+    }
+
+    /* Motion-safe: respect users who prefer reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .flip-card {
+        transition: none;
+      }
+    }
+
+    /* Optional tiny helper text (can be removed for production) */
+    .hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #666;
+      opacity: .75;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    HOW TO USE
+
+    1) Replace the two SVG URLs below (FRONT_SVG_URL and BACK_SVG_URL) with the
+       *raw* GitHub URLs to your SVGs (vector exports of your PDF faces).
+       Example format:
+       https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/path/to/front.svg
+       https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/path/to/back.svg
+
+    2) Keep the size target 402×201 for the best look (we preserve aspect ratio).
+       The card scales to its iframe/container width automatically.
+
+    3) Accessibility:
+       - The button has aria-labels for state.
+       - If you need screen-reader-only text content for the faces, add
+         aria-labels on the images or wrap with <figure><figcaption class="sr-only">…</figcaption></figure>.
+
+    4) If you truly need *selectable* text on the faces:
+       - Inline the SVG markup directly in place of <img> (paste SVG code).
+       - Or use <object type="image/svg+xml" data="…">. Text is *often* selectable then,
+         but cross-origin and font embedding can affect results.
+  -->
+
+  <div class="wrap">
+    <div class="shell">
+    <button
+      id="card"
+      class="flip-card"
+      type="button"
+      aria-pressed="false"
+      aria-label="Show back of card"
+      title="Click or press Space/Enter to flip"
+    >
+      <div class="face front" aria-hidden="false">
+        <img
+          id="frontImg"
+          alt="Intro card front"
+          src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Front.svg"
+        />
+      </div>
+
+      <div class="face back" aria-hidden="true">
+        <img
+          id="backImg"
+          alt="Intro card back"
+          src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Back.svg"
+        />
+      </div>
+    </button>
+    </div>
+  </div>
+
+  <div class="hint">Tip: Click/tap or press Space/Enter to flip.</div>
+
+  <script>
+    (function () {
+      const el = document.getElementById('card');
+
+      function flip() {
+        const isFlipped = el.classList.toggle('flipped');
+        // Update ARIA for assistive tech
+        el.setAttribute('aria-pressed', String(isFlipped));
+        el.setAttribute('aria-label', isFlipped ? 'Show front of card' : 'Show back of card');
+
+        // Toggle face aria-hidden
+        const front = el.querySelector('.front');
+        const back = el.querySelector('.back');
+        if (front && back) {
+          front.setAttribute('aria-hidden', String(isFlipped));
+          back.setAttribute('aria-hidden', String(!isFlipped));
+        }
+      }
+
+      // Click / keyboard controls
+      el.addEventListener('click', flip);
+      el.addEventListener('keydown', (evt) => {
+        const k = evt.key;
+        if (k === ' ' || k === 'Enter') {
+          evt.preventDefault();
+          flip();
+        }
+      });
+
+      // Preload opposite face once the first is ready (optional micro-optim)
+      const frontSrc = document.getElementById('frontImg').getAttribute('src');
+      const backSrc  = document.getElementById('backImg').getAttribute('src');
+      const preload = new Image();
+      preload.decoding = 'async';
+      preload.src = backSrc || frontSrc;
+    })();
+  </script>
+</body>
+</html>
