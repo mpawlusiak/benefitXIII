@@ -1,30 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Intro Video</title>
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      background: black;
-      overflow: hidden;
+    html, body {
+      height:100%; width:100%; margin:0; background:#000; overflow:hidden;
+    }
+    #wrap {
+      position:fixed; inset:0; display:block;
+      background:#000;
     }
     video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover; /* full-bleed */
+      background:#000;
+    }
+    /* Optional fade-out utility (call fadeOut() when you want) */
+    .fade {
+      animation: fadeout 800ms ease forwards;
+    }
+    @keyframes fadeout { to { opacity:0; visibility:hidden; } }
+    /* Minimal debug badge (shows errors if any) */
+    #dbg{
+      position:fixed; left:8px; bottom:8px; font:12px/1.4 monospace;
+      color:#fff; background:rgba(0,0,0,.5); padding:6px 8px; border-radius:6px; max-width:60ch;
     }
   </style>
 </head>
 <body>
-  <video autoplay muted playsinline>
-    <source src="AnimationIntro.mp4" type="video/mp4">
-  </video>
+  <div id="wrap">
+    <video id="intro" autoplay muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback">
+      <source src="SRC_GOES_HERE" type="video/mp4" />
+    </video>
+  </div>
+  <div id="dbg" hidden></div>
+
+  <script>
+    const v = document.getElementById('intro');
+    const dbg = document.getElementById('dbg');
+    function note(t){ dbg.hidden=false; dbg.textContent = t; }
+
+    // iOS/Safari: ensure autoplay by keeping muted + playsinline
+    v.addEventListener('error', () => note('Video error: check the URL, file name (with .mp4), and that the file exists.'));
+    v.addEventListener('stalled', () => note('Video stalled: hosting/range request issue or network hiccup.'));
+    v.addEventListener('canplay', () => { dbg.hidden = true; });
+    v.addEventListener('loadeddata', () => { dbg.hidden = true; });
+
+    // Optional: auto fade-out after X seconds (uncomment to use)
+    // function fadeOutAfter(seconds){
+    //   setTimeout(() => document.getElementById('wrap').classList.add('fade'), seconds*1000);
+    // }
+    // fadeOutAfter(4.7); // example to match your previous timing
+  </script>
 </body>
 </html>
