@@ -16,31 +16,28 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
 
-    
-    .shell {
-      transition: transform var(--duration) var(--easing), box-shadow var(--duration) var(--easing);
-      will-change: transform;
-      border-radius: var(--radius);
-    }
-    .shell:hover {
-      transform: translateY(-6px);
-    }
-    .shell:has(.flip-card:focus-visible) {
-      /* keep focus halo visible, optional */
-      transform: translateY(-2px);
+    /* Stage fills the iframe and centers the card perfectly */
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      padding: 0;
     }
 
-    /* ---------- Config ----------
-      The card is designed for 402×201 (Intro Card) but will scale responsively.
-      We use aspect-ratio so the card always looks correct in an iframe.
-    -------------------------------- */
+    /* ---------- Config ---------- */
     :root {
       --card-w: 402px;
       --card-h: 201px;
       --shadow: 0 8px 16px rgba(0,0,0,.25);
-      --radius: 0px; /* flat corners per your preference */
+      --radius: 0px; /* flat corners */
       --duration: 700ms;
       --easing: cubic-bezier(.22,.61,.36,1);
+
+      /* Face images (SVGs as backgrounds) */
+      --front-url: url("https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Front.svg");
+      --back-url:  url("https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Back.svg");
     }
 
     .wrap {
@@ -48,6 +45,14 @@
       aspect-ratio: 402 / 201;
       perspective: 1200px;
     }
+
+    .shell {
+      transition: transform var(--duration) var(--easing), box-shadow var(--duration) var(--easing);
+      will-change: transform;
+      border-radius: var(--radius);
+    }
+    .shell:hover { transform: translateY(-6px); }
+    .shell:has(.flip-card:focus-visible) { transform: translateY(-2px); }
 
     .flip-card {
       position: relative;
@@ -57,7 +62,8 @@
       transition: transform var(--duration) var(--easing);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      outline: none; /* we'll manage focus styles */
+      outline: none;
+      background: transparent;
     }
     .flip-card:focus-visible {
       box-shadow:
@@ -69,41 +75,23 @@
     .face {
       position: absolute;
       inset: 0;
-      display: grid;
-      place-items: center;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       border-radius: var(--radius);
-      overflow: hidden; /* ensures SVG fits perfectly */
-      background: transparent;
+      overflow: hidden;
+      background-color: transparent;
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover; /* ensures the SVG fills the 402×201 area */
     }
 
-    /* The actual vector images */
-    .face > img,
-    .face > object {
-      width: 100%;
-      height: 100%;
-      object-fit: cover; /* keeps exact art proportions inside 402×201 */
-      pointer-events: none; /* so clicks hit the card for flipping */
-      user-select: none;
-    }
+    .front { background-image: var(--front-url); }
+    .back  { background-image: var(--back-url); transform: rotateY(180deg); }
 
-    .back {
-      transform: rotateY(180deg);
-    }
+    .flipped { transform: rotateY(180deg); }
 
-    .flipped {
-      transform: rotateY(180deg);
-    }
+    @media (prefers-reduced-motion: reduce) { .flip-card { transition: none; } }
 
-    /* Motion-safe: respect users who prefer reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      .flip-card {
-        transition: none;
-      }
-    }
-
-    /* Optional tiny helper text (can be removed for production) */
     .hint {
       position: fixed;
       bottom: 10px;
@@ -117,55 +105,21 @@
   </style>
 </head>
 <body>
-  <!--
-    HOW TO USE
-
-    1) Replace the two SVG URLs below (FRONT_SVG_URL and BACK_SVG_URL) with the
-       *raw* GitHub URLs to your SVGs (vector exports of your PDF faces).
-       Example format:
-       https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/path/to/front.svg
-       https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/path/to/back.svg
-
-    2) Keep the size target 402×201 for the best look (we preserve aspect ratio).
-       The card scales to its iframe/container width automatically.
-
-    3) Accessibility:
-       - The button has aria-labels for state.
-       - If you need screen-reader-only text content for the faces, add
-         aria-labels on the images or wrap with <figure><figcaption class="sr-only">…</figcaption></figure>.
-
-    4) If you truly need *selectable* text on the faces:
-       - Inline the SVG markup directly in place of <img> (paste SVG code).
-       - Or use <object type="image/svg+xml" data="…">. Text is *often* selectable then,
-         but cross-origin and font embedding can affect results.
-  -->
-
-  <div class="wrap">
-    <div class="shell">
-    <button
-      id="card"
-      class="flip-card"
-      type="button"
-      aria-pressed="false"
-      aria-label="Show back of card"
-      title="Click or press Space/Enter to flip"
-    >
-      <div class="face front" aria-hidden="false">
-        <img
-          id="frontImg"
-          alt="Intro card front"
-          src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Front.svg"
-        />
+  <div class="stage">
+    <div class="wrap">
+      <div class="shell">
+        <button
+          id="card"
+          class="flip-card"
+          type="button"
+          aria-pressed="false"
+          aria-label="Show back of card"
+          title="Click or press Space/Enter to flip"
+        >
+          <div class="face front" aria-hidden="false"></div>
+          <div class="face back" aria-hidden="true"></div>
+        </button>
       </div>
-
-      <div class="face back" aria-hidden="true">
-        <img
-          id="backImg"
-          alt="Intro card back"
-          src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Back.svg"
-        />
-      </div>
-    </button>
     </div>
   </div>
 
@@ -177,11 +131,9 @@
 
       function flip() {
         const isFlipped = el.classList.toggle('flipped');
-        // Update ARIA for assistive tech
         el.setAttribute('aria-pressed', String(isFlipped));
         el.setAttribute('aria-label', isFlipped ? 'Show front of card' : 'Show back of card');
 
-        // Toggle face aria-hidden
         const front = el.querySelector('.front');
         const back = el.querySelector('.back');
         if (front && back) {
@@ -190,7 +142,6 @@
         }
       }
 
-      // Click / keyboard controls
       el.addEventListener('click', flip);
       el.addEventListener('keydown', (evt) => {
         const k = evt.key;
@@ -199,13 +150,6 @@
           flip();
         }
       });
-
-      // Preload opposite face once the first is ready (optional micro-optim)
-      const frontSrc = document.getElementById('frontImg').getAttribute('src');
-      const backSrc  = document.getElementById('backImg').getAttribute('src');
-      const preload = new Image();
-      preload.decoding = 'async';
-      preload.src = backSrc || frontSrc;
     })();
   </script>
 </body>
