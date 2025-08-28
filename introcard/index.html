@@ -3,60 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Genially Flip Card (SVG Front/Back) — 402×201</title>
+  <title>Genially Flip Card (SVG Front/Back) — Auto Fit</title>
   <style>
     /* ---------- Reset / Base ---------- */
     *, *::before, *::after { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
       margin: 0;
-      display: grid;
-      place-items: center;
-      background: transparent;
+      background: transparent; /* play nicely inside Genially */
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Fill the iframe and center the card */
-    .stage {
-      width: 100vw;
-      height: 100vh;
-      display: grid;
-      place-items: center;
-    }
-
-    :root {
-      --card-w: 402px;  /* design width */
-      --card-h: 201px;  /* design height */
+    :root{
+      --card-w: 402px;         /* base design width  */
+      --card-h: 201px;         /* base design height */
       --shadow: 0 8px 16px rgba(0,0,0,.25);
-      --radius: 0px;    /* flat corners */
+      --radius: 0px;           /* flat corners */
       --duration: 700ms;
       --easing: cubic-bezier(.22,.61,.36,1);
 
-      /* SVG faces */
+      /* SVG faces (your files) */
       --front-url: url("https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Front.svg");
       --back-url:  url("https://raw.githubusercontent.com/mpawlusiak/benefitXIII/03984eb696f602bb1ebbd87f17bd06b3998289bc/introcard/beNeFit%20XIII%20-%20Intro%20Card_Back.svg");
     }
 
-    /* Outer width control + responsive cap */
-    .wrap {
-      width: min(100%, var(--card-w));
-      max-width: var(--card-w);
-      margin: 0 auto;
-    }
-
-    /* Ratio box — guarantees height without using aspect-ratio */
-    .ratio {
-      position: relative;
-      width: 100%;
-      /* 201 / 402 = 0.5  -> 50% */
-      padding-top: calc(201 / 402 * 100%);
-      perspective: 1200px;
-    }
-
-    /* Hover raise */
-    .shell {
-      position: absolute;
+    /* Fill the iframe and center content */
+    .fit {
+      position: fixed;
       inset: 0;
+      display: grid;
+      place-items: center;
+      background: transparent;
+    }
+
+    /* The element we scale to fit the iframe */
+    .scale {
+      width: var(--card-w);
+      height: var(--card-h);
+      transform-origin: center center;
+      /* Smooth scale transitions on window resizes */
+      transition: transform var(--duration) var(--easing);
+    }
+
+    /* Hover raise lives inside the scaled box so it scales too */
+    .shell {
+      width: 100%;
+      height: 100%;
       transition: transform var(--duration) var(--easing), box-shadow var(--duration) var(--easing);
       will-change: transform;
       border-radius: var(--radius);
@@ -64,16 +56,24 @@
     .shell:hover { transform: translateY(-6px); }
     .shell:has(.flip-card:focus-visible) { transform: translateY(-2px); }
 
-    /* Flip card fills the ratio box */
+    /* Flip card fills the scaled rectangle */
     .flip-card {
-      position: absolute;
-      inset: 0;
+      position: relative;
+      width: 100%;
+      height: 100%;
       transform-style: preserve-3d;
       transition: transform var(--duration) var(--easing);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      outline: none;
       background: transparent;
+
+      /* Remove the default button border/appearance (fixes thick black line) */
+      border: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
     }
     .flip-card:focus-visible {
       box-shadow:
@@ -90,19 +90,18 @@
       border-radius: var(--radius);
       overflow: hidden;
 
-      /* SVG as background to avoid intrinsic sizing issues */
+      /* Use SVG as background; contain = no crop, maintain aspect ratio */
       background-repeat: no-repeat;
       background-position: center center;
-      background-size: cover; /* change to 'contain' if you prefer letterboxing */
+      background-size: contain; /* <= no cut-off, letterboxes if needed */
       background-color: transparent;
     }
 
     .front { background-image: var(--front-url); }
     .back  { background-image: var(--back-url); transform: rotateY(180deg); }
-
     .flipped { transform: rotateY(180deg); }
 
-    @media (prefers-reduced-motion: reduce) { .flip-card { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .flip-card, .scale, .shell { transition: none; } }
 
     .hint {
       position: fixed;
@@ -117,22 +116,20 @@
   </style>
 </head>
 <body>
-  <div class="stage">
-    <div class="wrap">
-      <div class="ratio">
-        <div class="shell">
-          <button
-            id="card"
-            class="flip-card"
-            type="button"
-            aria-pressed="false"
-            aria-label="Show back of card"
-            title="Click or press Space/Enter to flip"
-          >
-            <div class="face front" aria-hidden="false"></div>
-            <div class="face back" aria-hidden="true"></div>
-          </button>
-        </div>
+  <div class="fit">
+    <div class="scale" id="scaleBox">
+      <div class="shell">
+        <button
+          id="card"
+          class="flip-card"
+          type="button"
+          aria-pressed="false"
+          aria-label="Show back of card"
+          title="Click or press Space/Enter to flip"
+        >
+          <div class="face front" aria-hidden="false"></div>
+          <div class="face back"  aria-hidden="true"></div>
+        </button>
       </div>
     </div>
   </div>
@@ -141,29 +138,39 @@
 
   <script>
     (function () {
-      const el = document.getElementById('card');
-
+      // Flip behavior + ARIA
+      const card = document.getElementById('card');
       function flip() {
-        const isFlipped = el.classList.toggle('flipped');
-        el.setAttribute('aria-pressed', String(isFlipped));
-        el.setAttribute('aria-label', isFlipped ? 'Show front of card' : 'Show back of card');
-
-        const front = el.querySelector('.front');
-        const back = el.querySelector('.back');
+        const isFlipped = card.classList.toggle('flipped');
+        card.setAttribute('aria-pressed', String(isFlipped));
+        card.setAttribute('aria-label', isFlipped ? 'Show front of card' : 'Show back of card');
+        const front = card.querySelector('.front');
+        const back  = card.querySelector('.back');
         if (front && back) {
           front.setAttribute('aria-hidden', String(isFlipped));
-          back.setAttribute('aria-hidden', String(!isFlipped));
+          back.setAttribute('aria-hidden',   String(!isFlipped));
         }
       }
-
-      el.addEventListener('click', flip);
-      el.addEventListener('keydown', (evt) => {
-        const k = evt.key;
-        if (k === ' ' || k === 'Enter') {
-          evt.preventDefault();
-          flip();
-        }
+      card.addEventListener('click', flip);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); }
       });
+
+      // Auto-fit to iframe/container (no cropping, keeps aspect ratio)
+      const BASE_W = 402, BASE_H = 201;
+      const scaleBox = document.getElementById('scaleBox');
+      const fit = document.querySelector('.fit');
+
+      function rescale() {
+        const w = fit.clientWidth;
+        const h = fit.clientHeight;
+        const s = Math.min(w / BASE_W, h / BASE_H); // contain
+        scaleBox.style.transform = `scale(${s})`;
+      }
+      window.addEventListener('resize', rescale);
+      window.addEventListener('orientationchange', rescale);
+      // Run once after layout
+      requestAnimationFrame(rescale);
     })();
   </script>
 </body>
