@@ -6,38 +6,54 @@
 <title>Attire Card (Flip with Back-Only QR Link)</title>
 <style>
   :root{
-    --ar: 0.628; /* width/height ≈ 153.45 / 244.33 */
-    --flip-duration: 700ms;
-    --easing: cubic-bezier(.2,.7,.2,1);
-    --hover-lift: 8px;
-    --shadow: 0 8px 18px rgba(0,0,0,.25);
-    --shadow-hover: 0 14px 28px rgba(0,0,0,.28);
+    --ar: 0.628;               /* 153.45 / 244.33 */
+    --tilt: -5deg;             /* slight rotation */
+    --lift: 8px;               /* hover lift distance */
+    --flip-duration: 700ms;    /* flip timing */
+    --hover-duration: 360ms;   /* hover timing (slower) */
+    --ease-out: cubic-bezier(.22,1,.36,1); /* easeOutCubic */
   }
-  html, body { height: 100%; margin: 0; background: transparent; }
 
-  .stage {
-    height: 100vh;
-    width: 100vw;
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: transparent;
     display: grid;
     place-items: center;
-    perspective: 1400px;
     overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
   }
-  .card {
-    position: relative;
-    width: min(100vw, calc(100vh * var(--ar)));
-    height: min(100vh, calc(100vw / var(--ar)));
+
+  .fit {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+
+  .tilt {
+    transform: rotate(var(--tilt));
     transform-style: preserve-3d;
-    transition: transform var(--flip-duration) var(--easing),
-                box-shadow 220ms var(--easing),
-                translate 220ms var(--easing);
-    box-shadow: var(--shadow);
-    cursor: pointer;
-    border-radius: 0;
   }
-  .card:hover { translate: 0 calc(-1 * var(--hover-lift)); box-shadow: var(--shadow-hover); }
+
+  .card {
+    aspect-ratio: var(--ar);
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    max-width: min(100%, calc(100% * var(--ar)));
+    position: relative;
+    transform-style: preserve-3d;
+    transition:
+      transform var(--flip-duration) cubic-bezier(.2,.7,.2,1),
+      translate var(--hover-duration) var(--ease-out),
+      filter var(--hover-duration) var(--ease-out);
+    cursor: pointer;
+  }
+
+  .card:hover {
+    translate: 0 calc(-1 * var(--lift));
+  }
+
   .card.is-back { transform: rotateY(180deg); }
 
   .face {
@@ -46,48 +62,60 @@
     display: grid;
     place-items: center;
     backface-visibility: hidden;
-    overflow: hidden;
+    overflow: visible;
   }
+
   .face img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.25));
+    transition: filter var(--hover-duration) var(--ease-out);
   }
+
+  .card:hover .face img {
+    filter: drop-shadow(0 14px 28px rgba(0,0,0,.28));
+  }
+
   .back { transform: rotateY(180deg); }
 
-  /* QR hotspot */
+  /* Eyeballed QR hotspot coordinates */
   .qr-link {
     position: absolute;
-    left: 66%;
-    top: 64%;
-    width: 26%;
-    height: 26%;
+    left: 12%;
+    top: 8.5%;
+    width: 76%;
+    height: 36%;
     pointer-events: none;
     z-index: 3;
+    /* outline: 2px dashed rgba(0,0,0,.25);  <-- uncomment to visualize */
   }
   .card.is-back .qr-link { pointer-events: auto; }
 </style>
 </head>
 <body>
-<div class="stage">
-  <div class="card" id="flipCard" role="button" aria-pressed="false" tabindex="0">
-    <div class="face front" aria-hidden="false">
-      <img src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Front.png" alt="Attire card front" />
-    </div>
-    <div class="face back" aria-hidden="true">
-      <img src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Back.png" alt="Attire card back with QR code" />
-      <a id="qrLink" class="qr-link" href="https://nfxdetroit.org/" target="_blank" rel="noopener"></a>
+  <div class="fit">
+    <div class="tilt">
+      <div class="card" id="flipCard" role="button" aria-pressed="false" tabindex="0">
+        <div class="face front" aria-hidden="false">
+          <img src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Front.png" alt="Attire card front" />
+        </div>
+
+        <div class="face back" aria-hidden="true">
+          <img src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Back.png" alt="Attire card back with QR code" />
+          <a id="qrLink" class="qr-link" href="https://nfxdetroit.org/" target="_blank" rel="noopener" aria-label="Open linked page from QR"></a>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
 <script>
   (function () {
     const card = document.getElementById('flipCard');
     const qrLink = document.getElementById('qrLink');
     const frontFace = card.querySelector('.front');
-    const backFace = card.querySelector('.back');
+    const backFace  = card.querySelector('.back');
 
     function updateBackState() {
       const isBack = card.classList.contains('is-back');
@@ -95,7 +123,6 @@
       frontFace.setAttribute('aria-hidden', String(isBack));
       backFace.setAttribute('aria-hidden', String(!isBack));
     }
-
     updateBackState();
 
     card.addEventListener('click', (e) => {
@@ -105,8 +132,8 @@
     });
 
     card.addEventListener('keydown', (e) => {
-      const key = e.key || e.code;
-      if (key === ' ' || key === 'Spacebar' || key === 'Enter') {
+      const k = e.key || e.code;
+      if (k === ' ' || k === 'Spacebar' || k === 'Enter') {
         e.preventDefault();
         card.classList.toggle('is-back');
         updateBackState();
