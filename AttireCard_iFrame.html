@@ -6,15 +6,15 @@
 <title>Attire Card (Flip + Back-only QR, No JS)</title>
 <style>
   :root{
-    --ar: 0.628;               /* 153.45 / 244.33 */
-    --tilt: -5deg;             /* slight rotation */
-    --lift: 8px;               /* hover lift distance */
-    --flip-duration: 700ms;    /* flip timing */
-    --hover-duration: 360ms;   /* hover timing (slower) */
-    --ease-out: cubic-bezier(.22,1,.36,1); /* easeOutCubic */
+    --tilt: -5deg;
+    --lift: 8px;
+    --flip-duration: 700ms;
+    --hover-duration: 360ms;
+    --ease-out: cubic-bezier(.22,1,.36,1);
+    /* Attire ratio H/W = 244.33 / 153.45 ≈ 1.593 */
+    --ratio: 1.593;
   }
 
-  /* Fill the iframe, center content */
   html, body {
     height: 100%;
     margin: 0;
@@ -23,21 +23,39 @@
     place-items: center;
     overflow: hidden;
   }
-  .fit { width: 100%; height: 100%; display: grid; place-items: center; }
 
-  /* label+checkbox pattern = script-free toggling */
+  /* Fit the iframe box and center card */
+  .fit {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+
   .tilt { transform: rotate(var(--tilt)); transform-style: preserve-3d; }
 
-  .card {
-    --rotateY: 0deg;
-    aspect-ratio: var(--ar);
-    width: 100%;
-    height: auto;
-    max-width: min(100%, calc(100% * var(--ar)));
-    max-height: 100%;
+  /* Card wrapper with robust aspect-ratio fallback */
+  .card-wrap {
     position: relative;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  /* Fallback: reserve height via padding-top if aspect-ratio unsupported */
+  .card-wrap::before {
+    content: "";
+    display: block;
+    padding-top: calc(var(--ratio) * 100%); /* ~159.3% */
+  }
+  @supports (aspect-ratio: 1) {
+    .card-wrap::before { display: none; padding-top: 0; }
+    .card-wrap { aspect-ratio: calc(1 / 1 / var(--ratio)); } /* W/H = 1/1.593 */
+  }
+
+  .card {
+    position: absolute; inset: 0;
     transform-style: preserve-3d;
-    transform: rotateY(var(--rotateY));
+    transform: rotateY(var(--ry, 0deg));
     transition:
       transform var(--flip-duration) cubic-bezier(.2,.7,.2,1),
       translate var(--hover-duration) var(--ease-out),
@@ -47,19 +65,14 @@
   .card:hover { translate: 0 calc(-1 * var(--lift)); }
 
   .face {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
     backface-visibility: hidden;
-    overflow: visible; /* allow drop-shadow outside bounds */
+    overflow: visible; /* let drop-shadow render */
   }
   .face img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-    /* PNG-aware shadow */
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
     filter: drop-shadow(0 8px 18px rgba(0,0,0,.25));
     transition: filter var(--hover-duration) var(--ease-out);
   }
@@ -67,75 +80,64 @@
 
   .back { transform: rotateY(180deg); }
 
-  /* QR hotspot — active only when back is visible */
+  /* --- QR hotspot (eyeballed to your Attire back) --- */
   .qr-link {
     position: absolute;
     left: 12%;
     top: 8.5%;
     width: 76%;
     height: 36%;
-    pointer-events: none;  /* inactive by default */
+    pointer-events: none;           /* only active when back is “visible” */
     z-index: 3;
-    /* outline: 2px dashed rgba(0,0,0,.25);  /* uncomment to verify coverage */
+    /* outline: 2px dashed rgba(0,0,0,.25);  /* <-- uncomment to verify box */
   }
 
-  /* ===== CSS-only flip via checkbox ===== */
+  /* ===== Script-free flip (checkbox hack) ===== */
   .toggle {
     position: absolute;
     opacity: 0;
     pointer-events: none;
   }
-
-  /* The label captures clicks to flip (front/back). */
   .flipper {
-    display: block;
-    width: 100%;
-    height: 100%;
+    display: block; width: 100%; height: 100%; position: relative; z-index: 2;
   }
-
-  /* default state: front visible */
-  .toggle:not(:checked) ~ .tilt .card { --rotateY: 0deg; }
-  .toggle:not(:checked) ~ .tilt .qr-link { pointer-events: none; }
-
-  /* flipped state: back visible */
-  .toggle:checked ~ .tilt .card { --rotateY: 180deg; }
-  .toggle:checked ~ .tilt .qr-link { pointer-events: auto; }
-
-  /* Make sure clicks on the QR don’t toggle the checkbox:
-     We’ll cover the card with the label, but let the link sit above it. */
-  .qr-link { position: absolute; z-index: 3; }
-  .flipper { position: relative; z-index: 2; }
+  .toggle:not(:checked) ~ .tilt .card       { --ry: 0deg;    }
+  .toggle:not(:checked) ~ .tilt .qr-link    { pointer-events: none; }
+  .toggle:checked       ~ .tilt .card       { --ry: 180deg;  }
+  .toggle:checked       ~ .tilt .qr-link    { pointer-events: auto; }
 </style>
 </head>
 <body>
   <div class="fit">
-    <!-- Hidden checkbox controls the state -->
+    <!-- Hidden checkbox controls state (front/back) -->
     <input id="flipToggle" class="toggle" type="checkbox" aria-hidden="true" />
-
     <div class="tilt">
-      <!-- Label wraps the card so clicks toggle the checkbox (flip) -->
-      <label class="flipper" for="flipToggle" aria-label="Flip card">
-        <div class="card" role="button" aria-pressed="false" tabindex="0">
-          <div class="face front" aria-hidden="false">
-            <img
-              src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Front.png"
-              alt="Attire card front" />
+      <div class="card-wrap">
+        <!-- Label covers the card so clicks toggle the checkbox (flip) -->
+        <label class="flipper" for="flipToggle" aria-label="Flip card">
+          <div class="card" role="button" aria-pressed="false" tabindex="0">
+            <div class="face front" aria-hidden="false">
+              <img
+                src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/refs/heads/main/AttireCard_Front.png"
+                referrerpolicy="no-referrer"
+                alt="Attire card front" />
+            </div>
+            <div class="face back" aria-hidden="true">
+              <img
+                src="https://raw.githubusercontent.com/mpawlusiak/benefitXIII/refs/heads/main/AttireCard_Back.png"
+                referrerpolicy="no-referrer"
+                alt="Attire card back with QR code" />
+            </div>
           </div>
-          <div class="face back" aria-hidden="true">
-            <img
-              src="https://mpawlusiak.github.io/benefitXIII/AttireCard_Back.png"
-              alt="Attire card back with QR code" />
-          </div>
-        </div>
-      </label>
-
-      <!-- Back-only clickable hotspot (sits above the label so it won’t toggle) -->
-      <a
-        class="qr-link"
-        href="https://nfxdetroit.org/"
-        target="_blank" rel="noopener"
-        aria-label="Open linked page from QR">
-      </a>
+        </label>
+        <!-- Back-only clickable hotspot (sits above the label so it won’t toggle) -->
+        <a
+          class="qr-link"
+          href="https://nfxdetroit.org/"
+          target="_blank" rel="noopener"
+          aria-label="Open linked page from QR">
+        </a>
+      </div>
     </div>
   </div>
 </body>
