@@ -3,43 +3,85 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Attire Card (Minimal Flip, No JS)</title>
+<title>Attire Card (Tilt + Hover + Crossfade Flip, No 3D)</title>
 <style>
-  html,body{height:100%;margin:0;background:#fff;display:grid;place-items:center;overflow:hidden}
-  .stage{width:100%;height:100%;display:grid;place-items:center}
-  .wrap{position:relative;max-width:100%;max-height:100%;display:grid;place-items:center}
-  .img{max-width:100%;max-height:100%;object-fit:contain;display:block}
-
-  /* CSS-only toggle via checkbox */
-  #t{position:absolute;opacity:0;pointer-events:none}
-  .front{display:block}
-  .back{display:none;position:relative}
-  #t:checked ~ .wrap .front{display:none}
-  #t:checked ~ .wrap .back{display:block}
-
-  /* Back-only QR hotspot (eyeballed) */
-  .qr{
-    position:absolute;
-    left:12%;
-    top:8.5%;
-    width:76%;
-    height:36%;
-    z-index:2;
+  :root{
+    --tilt:-5deg;                 /* slight rotation */
+    --lift:8px;                   /* hover lift */
+    --fade:500ms;                 /* flip crossfade duration */
+    --hover:360ms;                /* hover timing */
+    --ease:cubic-bezier(.22,1,.36,1);
+    --ratio:1.593;                /* H/W = 244.33 / 153.45 */
+    --shadow-normal: 0 8px 18px rgba(0,0,0,.25);
+    --shadow-hover:  0 14px 28px rgba(0,0,0,.28);
   }
+
+  /* Fill + center */
+  html,body{height:100%;margin:0;background:transparent;display:grid;place-items:center;overflow:hidden}
+  .stage{width:100%;height:100%;display:grid;place-items:center}
+
+  /* Robust sizing wrapper (same pattern as your working version) */
+  .wrap{position:relative;max-width:100%;max-height:100%}
+  .wrap::before{content:"";display:block;padding-top:calc(var(--ratio)*100%)} /* reserve height */
+  .content{position:absolute;inset:0}
+
+  /* Hidden checkbox controls state (front/back) */
+  #t{position:absolute;opacity:0;pointer-events:none}
+
+  /* Card container: tilt + hover lift (NO 3D) */
+  .card{
+    position:relative; inset:0;
+    width:100%; height:100%;
+    transform:rotate(var(--tilt));
+    transition: transform var(--hover) var(--ease), translate var(--hover) var(--ease);
+    cursor:pointer;
+  }
+  .card:hover{ translate:0 calc(-1*var(--lift)); }
+
+  /* Stacked faces; crossfade for “flip” */
+  .face{
+    position:absolute; inset:0; display:block;
+  }
+  .front{ opacity:1;  transition:opacity var(--fade) var(--ease); z-index:2; }
+  .back { opacity:0;  transition:opacity var(--fade) var(--ease); z-index:1; }
+
+  #t:checked ~ .content .front{ opacity:0; z-index:1; }
+  #t:checked ~ .content .back { opacity:1; z-index:2; }
+
+  /* Images with PNG-aware shadow */
+  .img{
+    width:100%; height:100%; object-fit:contain; display:block;
+    filter:drop-shadow(var(--shadow-normal));
+    transition:filter var(--hover) var(--ease);
+  }
+  .card:hover .img{ filter:drop-shadow(var(--shadow-hover)); }
+
+  /* Back-only QR hotspot (eyeballed coords you approved) */
+  .qr{
+    position:absolute; left:12%; top:8.5%; width:76%; height:36%;
+    z-index:3;
+    pointer-events:none;          /* inactive unless back is shown */
+  }
+  #t:checked ~ .content .qr{ pointer-events:auto; }
 </style>
 </head>
 <body>
   <div class="stage">
-    <input id="t" type="checkbox" aria-hidden="true" />
-    <label for="t" class="wrap" title="Click to flip the card">
-      <!-- FRONT -->
-      <img class="img front" src="AttireCard_Front.png" alt="Attire card front">
-      <!-- BACK -->
-      <div class="back">
-        <img class="img" src="AttireCard_Back.png" alt="Attire card back with QR">
+    <div class="wrap">
+      <input id="t" type="checkbox" aria-hidden="true" />
+      <label class="content card" for="t" aria-label="Flip card">
+        <!-- FRONT -->
+        <div class="face front">
+          <img class="img" src="AttireCard_Front.png" alt="Attire card front">
+        </div>
+        <!-- BACK -->
+        <div class="face back">
+          <img class="img" src="AttireCard_Back.png" alt="Attire card back with QR">
+        </div>
+        <!-- Back-only clickable hotspot -->
         <a class="qr" href="https://nfxdetroit.org/" target="_blank" rel="noopener" aria-label="Open linked page"></a>
-      </div>
-    </label>
+      </label>
+    </div>
   </div>
 </body>
 </html>
