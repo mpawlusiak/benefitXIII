@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Attire Card (Animated Flip, Tilt, Hover, QR)</title>
+<title>Attire Card (Animated Flip, Tilt, Hover, QR – robust)</title>
 <style>
   :root{
     --tilt:-5deg;
@@ -9,7 +9,7 @@
     --flip:700ms;
     --hover:360ms;
     --ease:cubic-bezier(.22,1,.36,1);
-    --ratio:1.593; /* 244.33 / 153.45 */
+    --ratio:1.593;               /* H/W = 244.33 / 153.45 */
   }
 
   html,body{
@@ -20,64 +20,78 @@
     place-items:center;
     overflow:hidden;
   }
-  .stage{width:100%;height:100%;display:grid;place-items:center;perspective:1200px}
-  .tilt{transform:rotate(var(--tilt));transform-style:preserve-3d;width:100%;max-width:100%;max-height:100%}
 
-  /* Hidden checkbox controls state */
+  .stage{width:100%;height:100%;display:grid;place-items:center;perspective:1200px}
+
+  /* Hidden checkbox controls front/back state */
   #t{position:absolute;opacity:0;pointer-events:none}
 
+  .tilt{transform:rotate(var(--tilt));transform-style:preserve-3d;width:100%;max-width:100%;max-height:100%}
+
+  /* Robust size wrapper (never collapses): */
+  .wrap{position:relative;width:100%;max-width:100%;max-height:100%}
+  .wrap::before{content:"";display:block;padding-top:calc(var(--ratio)*100%)} /* reserves height */
+  @supports (aspect-ratio:1){
+    .wrap::before{display:none}
+    .wrap{aspect-ratio:calc(1/var(--ratio))}
+  }
+
+  /* The flipping card fills the wrap */
   .card{
-    position:relative;
-    width:100%;
-    max-width:100%;
-    max-height:100%;
-    aspect-ratio:calc(1/var(--ratio));
+    position:absolute; inset:0;
     transform-style:preserve-3d;
+    transform:rotateY(var(--ry,0deg));
     transition:transform var(--flip) cubic-bezier(.2,.7,.2,1);
     cursor:pointer;
   }
-  .card:hover{translate:0 calc(-1*var(--lift));transition:transform var(--flip), translate var(--hover) var(--ease)}
+  .card:hover{
+    translate:0 calc(-1*var(--lift));
+    transition:transform var(--flip), translate var(--hover) var(--ease);
+  }
+
   .face{
-    position:absolute;
-    inset:0;
-    display:grid;
-    place-items:center;
+    position:absolute; inset:0;
+    display:grid; place-items:center;
     backface-visibility:hidden;
+    overflow:visible;
   }
   .face img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
+    width:100%; height:100%;
+    object-fit:contain; display:block;
     filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));
     transition:filter var(--hover) var(--ease);
   }
-  .card:hover .face img{filter:drop-shadow(0 14px 28px rgba(0,0,0,.28))}
-  .back{transform:rotateY(180deg)}
+  .card:hover .face img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
 
-  /* Flip state */
-  #t:checked ~ .tilt .card{transform:rotateY(180deg)}
+  .back{ transform:rotateY(180deg); }
 
-  /* Back-only QR hotspot */
+  /* Flip state (checkbox toggles) */
+  #t:checked ~ .tilt .wrap .card{ transform:rotateY(180deg); }
+
+  /* Back-only QR hotspot (eyeballed) */
   .qr{
-    position:absolute;
-    left:12%;top:8.5%;width:76%;height:36%;
-    z-index:3;
-    pointer-events:none;
+    position:absolute; left:12%; top:8.5%; width:76%; height:36%;
+    z-index:3; pointer-events:none;
   }
-  #t:checked ~ .tilt .qr{pointer-events:auto}
+  #t:checked ~ .tilt .wrap .qr{ pointer-events:auto; }
 </style>
 
 <div class="stage">
   <input id="t" type="checkbox" aria-hidden="true" />
   <div class="tilt">
-    <label class="card" for="t" aria-label="Flip card">
-      <div class="face front">
-        <img src="AttireCard_Front.png" alt="Attire card front">
-      </div>
-      <div class="face back">
-        <img src="AttireCard_Back.png" alt="Attire card back with QR">
-      </div>
-    </label>
-    <a class="qr" href="https://nfxdetroit.org/" target="_blank" rel="noopener" aria-label="Open linked page"></a>
+    <div class="wrap">
+      <!-- Label covers the card so clicks toggle checkbox -->
+      <label class="card" for="t" aria-label="Flip card">
+        <div class="face front">
+          <img src="AttireCard_Front.png" alt="Attire card front">
+        </div>
+        <div class="face back">
+          <img src="AttireCard_Back.png" alt="Attire card back with QR">
+        </div>
+      </label>
+
+      <!-- Clickable only when back is showing -->
+      <a class="qr" href="https://nfxdetroit.org/" target="_blank" rel="noopener" aria-label="Open linked page"></a>
+    </div>
   </div>
 </div>
