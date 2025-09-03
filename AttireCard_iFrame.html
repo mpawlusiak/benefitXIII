@@ -5,29 +5,67 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Attire Card (safe tilt, hover, crossfade, no 3D)</title>
 <style>
-html,body{height:100%;margin:0;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.ratio{width:100%;max-width:720px;position:relative}
-.ratio::before{content:"";display:block;padding-top:159.3%}
-#t{position:absolute;opacity:0;pointer-events:none}
-.card{position:absolute;inset:0;transform:rotate(-5deg);transition:transform .36s cubic-bezier(.22,1,.36,1);cursor:pointer}
-.card:hover{transform:rotate(-5deg) translateY(-8px)}
-.face{position:absolute;inset:0}
-.front{opacity:1;transition:opacity .5s cubic-bezier(.22,1,.36,1);z-index:2}
-.back{opacity:0;transition:opacity .5s cubic-bezier(.22,1,.36,1);z-index:1}
-#t:checked~.ratio .front{opacity:0;z-index:1}
-#t:checked~.ratio .back{opacity:1;z-index:2}
-.img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));transition:filter .36s cubic-bezier(.22,1,.36,1)}
-.card:hover .img{filter:drop-shadow(0 14px 28px rgba(0,0,0,.28))}
-.qr{position:absolute;left:12%;top:8.5%;width:76%;height:36%;z-index:5;pointer-events:none}
-#t:checked~.ratio .qr{pointer-events:auto}
+  /* full-viewport centering */
+  html,body{
+    height:100%;
+    margin:0;
+    background:#fff;
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+  }
+
+  /* a fixed, non-zero width so the ratio box can compute height */
+  .ratio{
+    width:min(92vw, 720px);   /* <= KEY FIX: never 0 */
+    position:relative;
+  }
+  /* aspect-ratio fallback using padding-top (height = 159.3% of width) */
+  .ratio::before{
+    content:"";
+    display:block;
+    padding-top:159.3%;
+  }
+
+  /* hidden checkbox controls state */
+  #t{position:absolute;opacity:0;pointer-events:none}
+
+  /* card container: 2D tilt + hover lift (NO 3D) */
+  .card{
+    position:absolute; inset:0;
+    transform:rotate(-5deg);
+    transition:transform .36s cubic-bezier(.22,1,.36,1);
+    cursor:pointer;
+  }
+  .card:hover{ transform:rotate(-5deg) translateY(-8px); }
+
+  /* stacked faces, crossfade for "flip" */
+  .face{ position:absolute; inset:0; }
+  .front{ opacity:1; transition:opacity .5s cubic-bezier(.22,1,.36,1); z-index:2; }
+  .back { opacity:0; transition:opacity .5s cubic-bezier(.22,1,.36,1); z-index:1; }
+  #t:checked ~ .ratio .front{ opacity:0; z-index:1; }
+  #t:checked ~ .ratio .back { opacity:1; z-index:2; }
+
+  /* images with PNG-aware drop shadow */
+  .img{
+    width:100%; height:100%; object-fit:contain; display:block;
+    filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));
+    transition:filter .36s cubic-bezier(.22,1,.36,1);
+  }
+  .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
+
+  /* back-only QR hotspot (approved coords) */
+  .qr{
+    position:absolute; left:12%; top:8.5%; width:76%; height:36%;
+    z-index:5; pointer-events:none;
+  }
+  #t:checked ~ .ratio .qr{ pointer-events:auto; }
 </style>
 </head>
 <body>
-<div class="stage">
   <input id="t" type="checkbox" aria-hidden="true">
   <div class="ratio">
-    <!-- label wraps the two faces; clicking toggles checkbox -->
+    <!-- Clicking the card toggles the checkbox -->
     <label class="card" for="t" aria-label="Flip card">
       <div class="face front">
         <img class="img" src="AttireCard_Front.png" alt="Attire card front">
@@ -36,9 +74,8 @@ html,body{height:100%;margin:0;background:#fff;display:flex;align-items:center;j
         <img class="img" src="AttireCard_Back.png" alt="Attire card back with QR">
       </div>
     </label>
-    <!-- hotspot sits ABOVE the label; only active when back is shown -->
+    <!-- Back-only clickable area over the QR -->
     <a class="qr" href="https://nfxdetroit.org/" target="_blank" rel="noopener" aria-label="Open linked page"></a>
   </div>
-</div>
 </body>
 </html>
