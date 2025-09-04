@@ -3,91 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attire Card (centered, no clipping, HD controls)</title>
+<title>Attire Card (centered, 3D flip, QR controls)</title>
 <style>
+  /* Fill + transparent and center the card box */
   html,body{
     height:100%; margin:0; background:transparent;
-    display:grid; place-items:center;           /* center the shell */
-    box-sizing:border-box; overflow:hidden;
+    display:grid; place-items:center; overflow:hidden;
   }
 
-  /* width set via ?w= (default 720px). Aspect via padding-top */
-  .shell{ position:relative; width:auto; overflow:visible; }
-  .shell::before{ content:""; display:block; padding-top:159.3%; } /* 244.33 / 153.45 */
+  /* OUTER visible box — width set via ?w= (default 560) */
+  .box{ position:relative; width:auto; overflow:visible }
+  /* Aspect ratio = H/W = 247 / 129.2418 = 1.91115 → 191.115% */
+  .box::before{ content:""; display:block; padding-top:191.115% }
 
-  /* oversampling layers */
-  .pixel{ position:absolute; inset:0; transform-origin:top left; }
-  .ratio{ position:absolute; inset:0; width:100%; }
-  .ratio::before{ content:""; display:block; padding-top:159.3%; }
+  /* Oversampling layers (to counter Genially's scaling blur) */
+  .pixel{ position:absolute; inset:0; transform-origin:top left }
+  .ratio{ position:absolute; inset:0; width:100% }
+  .ratio::before{ content:""; display:block; padding-top:191.115% }
 
-  /* scale+center the whole card/QR as a group so tilt/hover never clip */
-  .group{
-    position:absolute; inset:0; display:grid; place-items:center;
-    transform-origin:center center;
-    transform:scale(0.95);        /* margin inside the box; adjust if needed */
-  }
+  /* Hidden checkbox controls front/back state */
+  #t{ position:absolute; opacity:0; pointer-events:none }
 
-  /* state */
-  #t{ position:absolute; opacity:0; pointer-events:none; }
-
-  /* 3D card with +5° tilt (to the right) */
+  /* 3D card (NO rotation now) */
   .card{
     position:absolute; inset:0; transform-style:preserve-3d;
-    transform:rotate(5deg) rotateY(0deg);
+    transform:rotateY(0deg);
     transition:transform .7s cubic-bezier(.2,.7,.2,1);
     cursor:pointer;
   }
-  .card:hover{ transform:rotate(5deg) translateY(-8px) rotateY(0deg); }
+  .card:hover{ transform:translateY(-6px) rotateY(0deg) }
 
-  .face{ position:absolute; inset:0; backface-visibility:hidden; }
-  .back{ transform:rotateY(180deg); }
+  /* faces */
+  .face{ position:absolute; inset:0; backface-visibility:hidden }
+  .back{ transform:rotateY(180deg) }
 
-  /* flip (include .shell in selectors since it wraps the pixel/ratio/group) */
-  #t:checked ~ .shell .pixel .ratio .group .card{
-    transform:rotate(5deg) rotateY(180deg);
-  }
-  #t:checked ~ .shell .pixel .ratio .group .card:hover{
-    transform:rotate(5deg) translateY(-8px) rotateY(180deg);
-  }
+  /* flip state (include .box in selector) */
+  #t:checked ~ .box .pixel .ratio .card{ transform:rotateY(180deg) }
+  #t:checked ~ .box .pixel .ratio .card:hover{ transform:translateY(-6px) rotateY(180deg) }
 
+  /* images + PNG-aware shadow */
   .img{
     width:100%; height:100%; object-fit:contain; display:block;
     image-rendering:-webkit-optimize-contrast;
     filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));
     transition:filter .36s cubic-bezier(.22,1,.36,1);
   }
-  .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
+  .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)) }
 
-  /* QR hotspot (relative to the card image); only active on back */
+  /* QR hotspot (percentages, set via CSS vars from JS) */
   .qr{
-    position:absolute; left:12%; top:8.5%; width:76%; height:36%;
-    z-index:5; pointer-events:none;
+    position:absolute;
+    left: var(--qr-left, 12%);
+    top:  var(--qr-top, 8.5%);
+    width: var(--qr-width, 76%);
+    height:var(--qr-height, 36%);
+    z-index:5;
+    pointer-events:none;        /* inactive unless back is showing */
   }
-  #t:checked ~ .shell .pixel .ratio .group .qr{ pointer-events:auto; }
+  #t:checked ~ .box .pixel .ratio .qr{ pointer-events:auto }
 
-  /* HD oversampling (fight Genially’s outer scaling) */
-  .hd2 .pixel{ transform:scale(.5) }     .hd2 .ratio{ width:200% }
-  .hd3 .pixel{ transform:scale(.3333) }  .hd3 .ratio{ width:300% }
+  /* HD oversampling modes */
+  .hd2 .pixel{ transform:scale(.5) }    .hd2 .ratio{ width:200% }
+  .hd3 .pixel{ transform:scale(.3333) } .hd3 .ratio{ width:300% }
+
+  /* Optional debug outline to line up the hotspot quickly */
+  .debug .qr{ outline:2px dashed rgba(255,0,0,.8) }
 </style>
 </head>
 <body>
   <input id="t" type="checkbox" aria-hidden="true">
-
-  <!-- centered container -->
-  <div class="shell" id="shell">
+  <div class="box" id="box">
     <div class="pixel">
       <div class="ratio">
-        <div class="group">
-          <!-- click (or focus + Enter/Space) to flip -->
-          <label class="card" for="t" aria-label="Flip card" role="button" tabindex="0">
-            <div class="face front"><img class="img" src="AttireCard_Front.png" alt="Attire card front"></div>
-            <div class="face back"><img class="img" src="AttireCard_Back.png"  alt="Attire card back with QR"></div>
-          </label>
-          <!-- back-only clickable QR area -->
-          <a class="qr"
-             href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
-             target="_blank" rel="noopener" aria-label="Open Pinterest board"></a>
-        </div>
+        <!-- Click (or Enter/Space) to flip -->
+        <label class="card" for="t" aria-label="Flip card" role="button" tabindex="0">
+          <div class="face front"><img class="img" src="AttireCard_Front.png" alt="Attire card front"></div>
+          <div class="face back"><img class="img" src="AttireCard_Back.png"  alt="Attire card back with QR"></div>
+        </label>
+        <!-- Back-only clickable QR area -->
+        <a class="qr" id="qr"
+           href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
+           target="_blank" rel="noopener"
+           aria-label="Open linked page"></a>
       </div>
     </div>
   </div>
@@ -95,13 +92,30 @@
 <script>
   (function(){
     var p=new URLSearchParams(location.search);
+
+    /* width control — match Genially's on-screen size to reduce resampling */
+    var w=parseFloat(p.get('w'));
+    if(!isFinite(w) || w<=0) w=560; /* default base width */
+    document.getElementById('box').style.width = w+'px';
+
+    /* HD oversampling for sharpness */
     var hd=(p.get('hd')||'').trim();
     if(hd==='2') document.body.classList.add('hd2');
     else if(hd==='3') document.body.classList.add('hd3');
 
-    var w=parseInt(p.get('w')||'',10);
-    if(!isFinite(w) || w<=0) w=720;                  /* default base width */
-    document.getElementById('shell').style.width = 'min(92vw,'+w+'px)';
+    /* Optional: show hotspot outline for alignment */
+    if(p.get('debug')==='1') document.body.classList.add('debug');
+
+    /* QR coordinates via ?qr=l,t,w,h (percentages) */
+    var qr = (p.get('qr')||'').split(',');
+    if(qr.length===4){
+      var l = qr[0].trim(), t = qr[1].trim(), ww = qr[2].trim(), hh = qr[3].trim();
+      var root = document.documentElement;
+      if(l)  root.style.setProperty('--qr-left',  l);
+      if(t)  root.style.setProperty('--qr-top',   t);
+      if(ww) root.style.setProperty('--qr-width', ww);
+      if(hh) root.style.setProperty('--qr-height',hh);
+    }
   })();
 </script>
 </body>
