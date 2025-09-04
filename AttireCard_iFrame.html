@@ -3,45 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attire Card (HD controls + width control)</title>
+<title>Attire Card (HD controls, centered, fixed flip)</title>
 <style>
-  html,body{height:100%;margin:0;background:transparent;display:grid;place-items:center;overflow:hidden}
+  html,body{
+    height:100%; margin:0; background:transparent;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
 
-  /* OUTER visible box — width will be set from JS (w param), default 720 */
-  .shell{position:relative;overflow:hidden}
-  .shell::before{content:"";display:block;padding-top:159.3%} /* aspect */
+  /* OUTER visible box — width set via ?w=, default 720 */
+  .shell{position:relative; overflow:hidden}
+  .shell::before{content:""; display:block; padding-top:159.3%} /* aspect */
 
-  /* Inner layer that we can scale down (oversampling) */
-  .pixel{position:absolute;inset:0;transform-origin:top left}
+  .pixel{position:absolute; inset:0; transform-origin:top left}
+  .ratio{position:absolute; inset:0; width:100%}
+  .ratio::before{content:""; display:block; padding-top:159.3%}
 
-  /* Content area whose width we enlarge in HD modes */
-  .ratio{position:absolute;inset:0;width:100%}
-  .ratio::before{content:"";display:block;padding-top:159.3%}
-
-  /* State */
-  #t{position:absolute;opacity:0;pointer-events:none}
+  /* checkbox state */
+  #t{position:absolute; opacity:0; pointer-events:none}
 
   /* Card (3D flip, +5° tilt to the right) */
   .card{
-    position:absolute;inset:0;transform-style:preserve-3d;
+    position:absolute; inset:0; transform-style:preserve-3d;
     transform:rotate(5deg) rotateY(0deg);
-    transition:transform .7s cubic-bezier(.2,.7,.2,1);cursor:pointer
+    transition:transform .7s cubic-bezier(.2,.7,.2,1); cursor:pointer;
   }
-  .card:hover{transform:rotate(5deg) translateY(-8px) rotateY(0deg)}
-  .face{position:absolute;inset:0;backface-visibility:hidden}
+  .card:hover{ transform:rotate(5deg) translateY(-8px) rotateY(0deg); }
+
+  .face{position:absolute; inset:0; backface-visibility:hidden}
   .back{transform:rotateY(180deg)}
-  #t:checked ~ .pixel .ratio .card{transform:rotate(5deg) rotateY(180deg)}
-  #t:checked ~ .pixel .ratio .card:hover{transform:rotate(5deg) translateY(-8px) rotateY(180deg)}
 
-  .img{width:100%;height:100%;object-fit:contain;display:block;
-       image-rendering:-webkit-optimize-contrast;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));
-       transition:filter .36s cubic-bezier(.22,1,.36,1)}
-  .card:hover .img{filter:drop-shadow(0 14px 28px rgba(0,0,0,.28))}
+  /* ✅ FIXED: include .shell in the state selectors */
+  #t:checked ~ .shell .pixel .ratio .card{
+    transform:rotate(5deg) rotateY(180deg);
+  }
+  #t:checked ~ .shell .pixel .ratio .card:hover{
+    transform:rotate(5deg) translateY(-8px) rotateY(180deg);
+  }
 
-  .qr{position:absolute;left:12%;top:8.5%;width:76%;height:36%;z-index:5;pointer-events:none}
-  #t:checked ~ .pixel .ratio .qr{pointer-events:auto}
+  .img{
+    width:100%; height:100%; object-fit:contain; display:block;
+    image-rendering:-webkit-optimize-contrast;
+    filter:drop-shadow(0 8px 18px rgba(0,0,0,.25));
+    transition:filter .36s cubic-bezier(.22,1,.36,1);
+  }
+  .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
 
-  /* HD modes (set by body class) */
+  /* Back-only QR hotspot */
+  .qr{position:absolute; left:12%; top:8.5%; width:76%; height:36%; z-index:5; pointer-events:none}
+  /* ✅ FIXED: include .shell here too */
+  #t:checked ~ .shell .pixel .ratio .qr{ pointer-events:auto; }
+
+  /* HD oversampling */
   .hd2 .pixel{transform:scale(.5)}     .hd2 .ratio{width:200%}
   .hd3 .pixel{transform:scale(.3333)}  .hd3 .ratio{width:300%}
 </style>
@@ -55,7 +67,10 @@
           <div class="face front"><img class="img" src="AttireCard_Front.png" alt="Attire card front"></div>
           <div class="face back"><img class="img" src="AttireCard_Back.png"  alt="Attire card back with QR"></div>
         </label>
-        <a class="qr" href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/" target="_blank" rel="noopener" aria-label="Open Pinterest board"></a>
+        <a class="qr"
+           href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
+           target="_blank" rel="noopener"
+           aria-label="Open Pinterest board"></a>
       </div>
     </div>
   </div>
@@ -69,8 +84,8 @@
 
     var w=parseInt(p.get('w')||'',10);
     var shell=document.getElementById('shell');
-    if(!isFinite(w) || w<=0) w=720;           // default base width
-    shell.style.width = 'min(92vw,'+w+'px)';  // never collapses to 0
+    if(!isFinite(w) || w<=0) w=720;                 /* default base width */
+    shell.style.width = 'min(92vw,'+w+'px)';        /* never collapses */
   })();
 </script>
 </body>
