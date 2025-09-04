@@ -3,53 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attire Card (transparent, -5deg, 3D flip, back-only QR)</title>
+<title>Attire Card (transparent, +5deg tilt, 3D flip, back-only QR)</title>
 <style>
-  /* Fill + transparent background */
   html,body{
     height:100%;
     margin:0;
-    background:transparent;           /* <-- transparent, not white */
+    background:transparent;
     display:grid;
     place-items:center;
     overflow:hidden;
   }
 
-  /* A definite (non-zero) width so height can be computed from padding-top */
   .ratio{
-    width:min(92vw,720px);            /* prevents zero-size collapse */
+    width:min(92vw,720px);
     position:relative;
-    perspective:1200px;               /* enables 3D */
+    perspective:1200px;
   }
   .ratio::before{
     content:"";
     display:block;
-    padding-top:159.3%;               /* 244.33 / 153.45 -> keeps aspect */
+    padding-top:159.3%;
   }
 
-  /* Hidden checkbox controls front/back state */
   #t{position:absolute;opacity:0;pointer-events:none}
 
-  /* The flipping card fills the box */
   .card{
     position:absolute; inset:0;
     transform-style:preserve-3d;
-    transform:rotate(-5deg) rotateY(0deg); /* -5deg tilt + front */
+    transform:rotate(5deg) rotateY(0deg);  /* <-- changed to +5deg */
     transition:transform .7s cubic-bezier(.2,.7,.2,1);
     cursor:pointer;
   }
-  /* Hover lift (kept subtle) */
-  .card:hover{ transform:rotate(-5deg) translateY(-8px) rotateY(0deg); }
+  .card:hover{ transform:rotate(5deg) translateY(-8px) rotateY(0deg); }
 
-  /* Flip to back (keeps the -5deg tilt during flip) */
   #t:checked ~ .ratio .card{
-    transform:rotate(-5deg) rotateY(180deg);
+    transform:rotate(5deg) rotateY(180deg);
   }
   #t:checked ~ .ratio .card:hover{
-    transform:rotate(-5deg) translateY(-8px) rotateY(180deg);
+    transform:rotate(5deg) translateY(-8px) rotateY(180deg);
   }
 
-  /* Faces */
   .face{
     position:absolute; inset:0;
     display:block;
@@ -57,7 +50,6 @@
   }
   .back{ transform:rotateY(180deg); }
 
-  /* PNG-aware shadow on the images */
   .img{
     width:100%; height:100%;
     object-fit:contain; display:block;
@@ -66,10 +58,9 @@
   }
   .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
 
-  /* Back-only QR hotspot (coords you approved) */
   .qr{
     position:absolute; left:12%; top:8.5%; width:76%; height:36%;
-    z-index:5; pointer-events:none;     /* inactive until back is showing */
+    z-index:5; pointer-events:none;
   }
   #t:checked ~ .ratio .qr{ pointer-events:auto; }
 </style>
@@ -77,7 +68,6 @@
 <body>
   <input id="t" type="checkbox" aria-hidden="true">
   <div class="ratio">
-    <!-- Click (or focus + Enter/Space) to flip -->
     <label class="card" for="t" aria-label="Flip card" role="button" tabindex="0">
       <div class="face front">
         <img class="img" src="AttireCard_Front.png" alt="Attire card front">
@@ -86,8 +76,6 @@
         <img class="img" src="AttireCard_Back.png" alt="Attire card back with QR">
       </div>
     </label>
-
-    <!-- Back-only clickable QR hotspot -->
     <a class="qr"
        href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
        target="_blank" rel="noopener"
