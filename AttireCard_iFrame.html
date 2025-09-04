@@ -3,40 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attire Card (HD controls, centered, fixed flip)</title>
+<title>Attire Card (centered, no clipping, HD controls)</title>
 <style>
   html,body{
     height:100%; margin:0; background:transparent;
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    display:grid; place-items:center;           /* center the shell */
+    box-sizing:border-box; overflow:hidden;
   }
 
-  /* OUTER visible box — width set via ?w=, default 720 */
-  .shell{position:relative; overflow:hidden}
-  .shell::before{content:""; display:block; padding-top:159.3%} /* aspect */
+  /* width set via ?w= (default 720px). Aspect via padding-top */
+  .shell{ position:relative; width:auto; overflow:visible; }
+  .shell::before{ content:""; display:block; padding-top:159.3%; } /* 244.33 / 153.45 */
 
-  .pixel{position:absolute; inset:0; transform-origin:top left}
-  .ratio{position:absolute; inset:0; width:100%}
-  .ratio::before{content:""; display:block; padding-top:159.3%}
+  /* oversampling layers */
+  .pixel{ position:absolute; inset:0; transform-origin:top left; }
+  .ratio{ position:absolute; inset:0; width:100%; }
+  .ratio::before{ content:""; display:block; padding-top:159.3%; }
 
-  /* checkbox state */
-  #t{position:absolute; opacity:0; pointer-events:none}
+  /* scale+center the whole card/QR as a group so tilt/hover never clip */
+  .group{
+    position:absolute; inset:0; display:grid; place-items:center;
+    transform-origin:center center;
+    transform:scale(0.95);        /* margin inside the box; adjust if needed */
+  }
 
-  /* Card (3D flip, +5° tilt to the right) */
+  /* state */
+  #t{ position:absolute; opacity:0; pointer-events:none; }
+
+  /* 3D card with +5° tilt (to the right) */
   .card{
     position:absolute; inset:0; transform-style:preserve-3d;
     transform:rotate(5deg) rotateY(0deg);
-    transition:transform .7s cubic-bezier(.2,.7,.2,1); cursor:pointer;
+    transition:transform .7s cubic-bezier(.2,.7,.2,1);
+    cursor:pointer;
   }
   .card:hover{ transform:rotate(5deg) translateY(-8px) rotateY(0deg); }
 
-  .face{position:absolute; inset:0; backface-visibility:hidden}
-  .back{transform:rotateY(180deg)}
+  .face{ position:absolute; inset:0; backface-visibility:hidden; }
+  .back{ transform:rotateY(180deg); }
 
-  /* ✅ FIXED: include .shell in the state selectors */
-  #t:checked ~ .shell .pixel .ratio .card{
+  /* flip (include .shell in selectors since it wraps the pixel/ratio/group) */
+  #t:checked ~ .shell .pixel .ratio .group .card{
     transform:rotate(5deg) rotateY(180deg);
   }
-  #t:checked ~ .shell .pixel .ratio .card:hover{
+  #t:checked ~ .shell .pixel .ratio .group .card:hover{
     transform:rotate(5deg) translateY(-8px) rotateY(180deg);
   }
 
@@ -48,29 +58,36 @@
   }
   .card:hover .img{ filter:drop-shadow(0 14px 28px rgba(0,0,0,.28)); }
 
-  /* Back-only QR hotspot */
-  .qr{position:absolute; left:12%; top:8.5%; width:76%; height:36%; z-index:5; pointer-events:none}
-  /* ✅ FIXED: include .shell here too */
-  #t:checked ~ .shell .pixel .ratio .qr{ pointer-events:auto; }
+  /* QR hotspot (relative to the card image); only active on back */
+  .qr{
+    position:absolute; left:12%; top:8.5%; width:76%; height:36%;
+    z-index:5; pointer-events:none;
+  }
+  #t:checked ~ .shell .pixel .ratio .group .qr{ pointer-events:auto; }
 
-  /* HD oversampling */
-  .hd2 .pixel{transform:scale(.5)}     .hd2 .ratio{width:200%}
-  .hd3 .pixel{transform:scale(.3333)}  .hd3 .ratio{width:300%}
+  /* HD oversampling (fight Genially’s outer scaling) */
+  .hd2 .pixel{ transform:scale(.5) }     .hd2 .ratio{ width:200% }
+  .hd3 .pixel{ transform:scale(.3333) }  .hd3 .ratio{ width:300% }
 </style>
 </head>
 <body>
   <input id="t" type="checkbox" aria-hidden="true">
+
+  <!-- centered container -->
   <div class="shell" id="shell">
     <div class="pixel">
       <div class="ratio">
-        <label class="card" for="t" aria-label="Flip card" role="button" tabindex="0">
-          <div class="face front"><img class="img" src="AttireCard_Front.png" alt="Attire card front"></div>
-          <div class="face back"><img class="img" src="AttireCard_Back.png"  alt="Attire card back with QR"></div>
-        </label>
-        <a class="qr"
-           href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
-           target="_blank" rel="noopener"
-           aria-label="Open Pinterest board"></a>
+        <div class="group">
+          <!-- click (or focus + Enter/Space) to flip -->
+          <label class="card" for="t" aria-label="Flip card" role="button" tabindex="0">
+            <div class="face front"><img class="img" src="AttireCard_Front.png" alt="Attire card front"></div>
+            <div class="face back"><img class="img" src="AttireCard_Back.png"  alt="Attire card back with QR"></div>
+          </label>
+          <!-- back-only clickable QR area -->
+          <a class="qr"
+             href="https://www.pinterest.com/RockEvents/a-black-and-white-night-to-cure-nf/"
+             target="_blank" rel="noopener" aria-label="Open Pinterest board"></a>
+        </div>
       </div>
     </div>
   </div>
@@ -83,9 +100,8 @@
     else if(hd==='3') document.body.classList.add('hd3');
 
     var w=parseInt(p.get('w')||'',10);
-    var shell=document.getElementById('shell');
-    if(!isFinite(w) || w<=0) w=720;                 /* default base width */
-    shell.style.width = 'min(92vw,'+w+'px)';        /* never collapses */
+    if(!isFinite(w) || w<=0) w=720;                  /* default base width */
+    document.getElementById('shell').style.width = 'min(92vw,'+w+'px)';
   })();
 </script>
 </body>
